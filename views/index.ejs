@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+      <script src="zepto.js"></script>
+  </head>
+  <body>
+    <div class="enter" style="width: 150px; height: 44px; background: #333; color:#fff; text-align: center;line-height: 44px;">开始转换</div>
+    <div class="list" style="margin-top: 50px; color: #666; font-size: 14px; line-height: 30px"></div>
+  </body>
+  <script src="toolkit.js"></script>
+
+  <script>
+      (function(D,W,$){
+          var api = {
+                 list:'/list',
+                 upload:'/upload'
+              },
+              gifDir = 'upload/',
+              pngDir = 'processed/',
+              TK = W.Toolkit,
+              coreFn = {
+                 getlist:function(api,success,error){
+                     TK.DAL.getdata({
+                        url:api.list,
+                        timeout:30,
+                        success:function(data){
+                            if(!data){
+                                console.log('no data!');
+                                return;
+                            }
+                            success && success(data);
+                        },
+                        error:function(err){
+                            error && error(err);
+                            console.log(err)
+                        }
+                     });
+                 },
+                 getImg:function(url,callback){
+                     var img = new Image();
+                     img.src = url;
+                     if(img.complete){
+                         callback && callback(img);
+                     }else{
+                         img.onload = function(){
+                             callback && callback(img);
+                         }
+                     }
+
+                 },
+                 getFirstFrame:function(img){
+                     var canvas = D.createElement('canvas'),
+                         img_png = new Image();
+                     canvas.width = img.width;
+                     canvas.height = img.height;
+                     canvas.getContext('2d').drawImage(img,0,0);
+                     img_png.src = canvas.toDataURL('image/png');
+                     return img_png.src;
+                 },
+                 convertAndSend:{
+                     send:function(api,data,success,error){
+                         TK.DAL.getdata({
+                             url:api.upload,
+                             type:'POST',
+                             timeout:30,
+                             data:data,
+                             success:function(data){
+                                 success && success(data);
+                             },
+                             error:function(err){
+                                 console.log(err);
+                                 error && error();
+                             }
+                         });
+                     }
+                 },
+                 init:function(){
+                     var $enter = $('.enter'),
+                          $list = $('.list');
+                     $enter.on('click',function(){
+                         $enter.html('获取列表中...');
+                         coreFn.getlist(api,function(data){
+                             var list = data.list,
+                                  len = list.length,
+                                    i = 0,
+                                    errTimes = 0;
+
+                             function sendToServer(_i){
+                                 setTimeout(function(){
+                                     if(_i<len){
+                                         coreFn.getImg(gifDir+list[_i],function(img){
+                                             var imgBase64 = coreFn.getFirstFrame(img);
+                                             coreFn.convertAndSend.send(api,{name:list[_i],data:imgBase64},function(){
+                                                 $list.append('<img src="'+ pngDir+ list[_i].replace('.gif','.png') +'"><br>'+list[_i]+' is Complete!<br>');
+                                                 i++;
+                                                 sendToServer(i);
+                                             },function(){
+                                                 $list.append(list[_i]+' is Fail!<br>');
+//                                                 if(errTimes < 3){
+//                                                     sendToServer(_i);
+//                                                 }else{
+//                                                     errTimes = 0;
+//                                                     i++;
+//                                                     sendToServer(i);
+//                                                 }
+                                             })
+                                         });
+                                     }
+                                 },100);
+
+                                  if(_i>=len){
+                                      $enter.html('转换完成');
+                                  }
+                             }
+                             sendToServer(i);
+                         },function(e){
+                             $enter.html('获取列表失败');
+                             $list.html('错误代码:'+e);
+                         });
+                     });
+                 }
+              };
+
+              coreFn.init();
+
+      })(document,window,$);
+
+  </script>
+</html>
