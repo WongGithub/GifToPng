@@ -14,3 +14,15 @@ GifToPng
 点击开始转换
 
 转换后的图片生成在 public/processed 文件夹里面
+
+Convert the Gif to PNG.
+
+Base on nodejs & express.
+
+Put the .gif to public/upload folder.
+
+Run the nodejs server, open url '127.0.0.1:8082' in the browser.
+
+click the button.
+
+The transformed images stored in public/processed.
